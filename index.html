@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AI Model Hub – Serverless ONNX (CORS Proxy Enabled)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #0a0c10;
+            background-image: radial-gradient(circle at 25% 0%, #1a1f2e 0%, #0a0c10 100%);
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Glassmorphic container */
+        .dashboard {
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(12, 15, 20, 0.7);
+            backdrop-filter: blur(16px);
+            border-radius: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            background: linear-gradient(120deg, #e0e7ff, #a5f3fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .user-section,
+        .api-section {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .user-section label,
+        .api-section label {
+            color: #9ca3af;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        #userIdInput,
+        #apiKeyInput {
+            background: rgba(30, 35, 45, 0.8);
+            border: 1px solid #2d3748;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            color: #f0f3fa;
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        #userIdInput:focus,
+        #apiKeyInput:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+            background: #1e293b;
+        }
+
+        .proxy-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }
+
+        .proxy-checkbox input {
+            width: auto;
+            margin: 0;
+        }
+
+        button,
+        .refresh-btn {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            padding: 0.5rem 1.2rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-size: 0.85rem;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover,
+        .refresh-btn:hover {
+            background: linear-gradient(135deg, #2d3a4e, #1a2538);
+            border-color: #4b5563;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border: none;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .primary-btn:hover {
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.5);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .card h2 {
+            font-size: 1.4rem;
+            margin-bottom: 1.2rem;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .model-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .model-item {
+            background: rgba(20, 25, 35, 0.6);
+            border-radius: 1rem;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: 0.2s;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+
+        .model-item.selected {
+            border-left-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.12);
+        }
+
+        .model-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .model-name {
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .model-id {
+            font-size: 0.7rem;
+            color: #6c727f;
+            font-family: monospace;
+        }
+
+        .run-btn {
+            background: #2d3b4f;
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 2rem;
+            color: #cbd5e1;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.2s;
+        }
+
+        .run-btn:hover {
+            background: #3b82f6;
+            color: white;
+            transform: scale(1.02);
+        }
+
+        input[type="file"],
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #2d3748;
+            border-radius: 1rem;
+            padding: 0.8rem;
+            color: #e2e8f0;
+            margin: 0.5rem 0;
+            resize: vertical;
+            font-size: 0.9rem;
+        }
+
+        textarea {
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .prediction-result {
+            margin-top: 1rem;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 1rem;
+            padding: 1rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #a5f3fc;
+            border: 1px solid #2d3748;
+        }
+
+        .message {
+            padding: 0.8rem;
+            border-radius: 1rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .success {
+            background: rgba(34, 197, 94, 0.15);
+            border-left: 4px solid #22c55e;
+            color: #bbf7d0;
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.15);
+            border-left: 4px solid #ef4444;
+            color: #fecaca;
+        }
+
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.75rem;
+            color: #4b5563;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 1rem;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e1e2e;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>⚡ AI Model Hub · Serverless ONNX</h1>
+            <div class="controls">
+                <div class="user-section">
+                    <label>User ID</label>
+                    <input type="text" id="userIdInput" placeholder="adit" value="adit">
+                </div>
+                <button class="refresh-btn" id="refreshModelsBtn">⟳ Refresh</button>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h2>📦 Your Models</h2>
+                <div id="modelsContainer" class="model-list">
+                    <div class="message" style="text-align:center;">Loading models...</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🚀 Upload New Model</h2>
+                <div class="file-input-wrapper">
+                    <input type="file" id="modelFile" accept=".onnx">
+                </div>
+                <input type="text" id="modelName" placeholder="Model name (e.g., iris_classifier)"
+                    value="my_onnx_model">
+                <select id="modelType">
+                    <option value="ONNX">ONNX</option>
+                    <option value="PyTorch">PyTorch (future)</option>
+                </select>
+                <button id="uploadBtn" class="primary-btn" style="width:100%;">⬆️ Upload Model</button>
+                <div id="uploadMessage"></div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 1rem;">
+            <h2>🧠 Run Inference</h2>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <div style="flex: 1;">
+                    <label>Select Model</label>
+                    <select id="runModelSelect">
+                        <option value="">-- Choose a model --</option>
+                    </select>
+                </div>
+                <div style="flex: 2;">
+                    <label>Input JSON (must match model input shape)</label>
+                    <textarea id="inputJson" rows="3"
+                        placeholder='[[5.1, 3.5, 1.4, 0.2]]'>[[5.1, 3.5, 1.4, 0.2]]</textarea>
+                </div>
+                <div style="flex: 0 0 auto; align-self: flex-end;">
+                    <button id="predictBtn" class="primary-btn">🎯 Predict</button>
+                </div>
+            </div>
+            <div id="predictionResult" class="prediction-result" style="display: none;"></div>
+        </div>
+        <footer>
+            ⚡ Powered by AWS Lambda, API Gateway, S3 & DynamoDB<br>
+            First prediction may take 3‑5 seconds (cold start). Subsequent calls are fast.
+        </footer>
+    </div>
+
+    <script>
+        // Native Vercel Proxy URL 
+        // (This routes ALL traffic through Vercel's backend, completely avoiding CORS!)
+        const BASE_URL = '/proxy';
+
+        // DOM elements
+        const userIdInput = document.getElementById('userIdInput');
+        const refreshBtn = document.getElementById('refreshModelsBtn');
+        const modelsContainer = document.getElementById('modelsContainer');
+        const modelFileInput = document.getElementById('modelFile');
+        const modelNameInput = document.getElementById('modelName');
+        const modelTypeSelect = document.getElementById('modelType');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const uploadMessageDiv = document.getElementById('uploadMessage');
+        const runModelSelect = document.getElementById('runModelSelect');
+        const inputJsonTextarea = document.getElementById('inputJson');
+        const predictBtn = document.getElementById('predictBtn');
+        const predictionResultDiv = document.getElementById('predictionResult');
+
+        let currentModels = [];
+
+        // Helper: get the proxied URL
+        function getApiUrl(endpoint) {
+            return `${BASE_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+        }
+
+        function getHeaders() {
+            return { 'Content-Type': 'application/json' };
+        }
+
+        function showMessage(container, text, isError = false) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${isError ? 'error' : 'success'}`;
+            msgDiv.innerHTML = text;
+            container.innerHTML = '';
+            container.appendChild(msgDiv);
+            setTimeout(() => {
+                if (container.firstChild === msgDiv) container.innerHTML = '';
+            }, 5000);
+        }
+
+        async function fetchModels() {
+            const userid = userIdInput.value.trim();
+            if (!userid) {
+                showMessage(modelsContainer, '❌ Please enter a User ID', true);
+                return;
+            }
+
+            modelsContainer.innerHTML = '<div class="spinner"></div> Loading models...';
+            try {
+                const url = getApiUrl(`/models/${encodeURIComponent(userid)}`);
+                const response = await fetch(url, { headers: getHeaders() });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                // API returns { "models": [...] }
+                currentModels = data.models || [];
+                renderModelsList(currentModels);
+                updateModelSelect(currentModels);
+            } catch (err) {
+                console.error(err);
+                let errorMsg = `❌ Failed to load models: ${err.message}`;
+                if (err.message.includes('CORS') || err.message.includes('Failed to fetch')) {
+                    errorMsg += ` — Try enabling the "Use CORS proxy" checkbox.`;
+                }
+                showMessage(modelsContainer, errorMsg, true);
+                currentModels = [];
+                renderModelsList([]);
+                updateModelSelect([]);
+            }
+        }
+
+        function renderModelsList(models) {
+            if (!models.length) {
+                modelsContainer.innerHTML = '<div class="message" style="text-align:center;">📭 No models uploaded yet.<br>Upload your first ONNX model!</div>';
+                return;
+            }
+            const listHtml = models.map(model => `
+      <div class="model-item" data-modelid="${model.modelid}">
+        <div class="model-info">
+          <div class="model-name">${escapeHtml(model.model_name || 'Unnamed')}</div>
+          <div class="model-id">${escapeHtml(model.modelid)}</div>
+          <div style="font-size:0.7rem; color:#9ca3af;">${escapeHtml(model.model_type || 'ONNX')}</div>
+        </div>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <button class="run-btn" data-modelid="${model.modelid}" data-modelname="${escapeHtml(model.model_name)}">▶ Run</button>
+          <button class="delete-btn" data-modelid="${model.modelid}" style="background:#ef4444; color:white; border:none; padding:0.4rem 1rem; border-radius:2rem; cursor:pointer; font-size:0.8rem;">🗑 Delete</button>
+        </div>
+      </div>
+    `).join('');
+            modelsContainer.innerHTML = listHtml;
+
+            document.querySelectorAll('.run-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const modelId = btn.getAttribute('data-modelid');
+                    runModelSelect.value = modelId;
+                    predictionResultDiv.style.display = 'none';
+                    predictionResultDiv.innerHTML = '';
+                    inputJsonTextarea.focus();
+                });
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const modelId = btn.getAttribute('data-modelid');
+                    const userid = userIdInput.value.trim();
+                    if (!confirm('Are you sure you want to delete this model?')) return;
+
+                    btn.innerHTML = '...';
+                    btn.disabled = true;
+
+                    try {
+                        const url = getApiUrl(`/models/${encodeURIComponent(userid)}/${encodeURIComponent(modelId)}`);
+                        const resp = await fetch(url, { method: 'DELETE', headers: getHeaders() });
+                        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                        fetchModels();
+                    } catch (err) {
+                        console.error(err);
+                        let errorMsg = err.message;
+                        if (err.message.includes('403') || err.message.includes('Failed to fetch')) {
+                            errorMsg += '\n\n💡 CORS Error (403): You need to enable CORS (create an OPTIONS method) for the /{modelid} resource in AWS API Gateway and Deploy the API.';
+                        }
+
+                        alert('Failed to delete model: ' + errorMsg);
+                        btn.innerHTML = '🗑 Delete';
+                        btn.disabled = false;
+                    }
+                });
+            });
+        }
+
+        function updateModelSelect(models) {
+            runModelSelect.innerHTML = '<option value="">-- Choose a model --</option>' +
+                models.map(model => `<option value="${escapeAttr(model.modelid)}">${escapeHtml(model.model_name || model.modelid)}</option>`).join('');
+        }
+
+        async function uploadModel() {
+            const userid = userIdInput.value.trim();
+            const file = modelFileInput.files[0];
+            const modelName = modelNameInput.value.trim();
+            const modelType = modelTypeSelect.value;
+
+            if (!userid) { showMessage(uploadMessageDiv, '❌ Please enter User ID', true); return; }
+            if (!file) { showMessage(uploadMessageDiv, '❌ Please select an ONNX file', true); return; }
+            if (!modelName) { showMessage(uploadMessageDiv, '❌ Please provide a model name', true); return; }
+
+            uploadBtn.disabled = true;
+            uploadMessageDiv.innerHTML = '<div class="spinner"></div> Step 1/3: Requesting upload ticket...';
+            try {
+                const filename = encodeURIComponent(file.name);
+                const url = getApiUrl(`/get-upload-url?userid=${encodeURIComponent(userid)}&filename=${filename}`);
+                const resp = await fetch(url, { headers: getHeaders() });
+                if (!resp.ok) throw new Error(`Failed to get upload URL: ${resp.status}`);
+                /*const data = await resp.json();
+                const { upload_url, model_id, s3_path } = data;
+                */
+                const data = await resp.json();
+                const parsed = JSON.parse(data.body);  // 👈 important fix
+
+                const { upload_url, model_id, s3_path } = parsed;
+
+                if (!upload_url || !model_id || !s3_path) throw new Error('Invalid response from server');
+
+                uploadMessageDiv.innerHTML = '<div class="spinner"></div> Step 2/3: Uploading file to S3...';
+                const uploadResp = await fetch(upload_url, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/octet-stream' },
+                    body: file
+                });
+                if (!uploadResp.ok) throw new Error(`S3 upload failed: ${uploadResp.status}`);
+
+                uploadMessageDiv.innerHTML = '<div class="spinner"></div> Step 3/3: Saving model metadata...';
+                const metaResp = await fetch(getApiUrl('/upload-model'), {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        /*userid,
+                        modelid: model_id,
+                        model_name: modelName,
+                        s3_path,
+                        model_type: modelType
+                        */
+
+                        "userid": userid,
+                        "modelid": model_id,          // Reverted back to modelid
+                        "model_name": modelName,      // Reverted back to model_name
+                        "s3 path": s3_path,           // Mapped exactly to "s3 path" as per docs
+                        "s3_path": s3_path,           // Double mapped for robust compatibility
+                        "model_type": modelType
+                    })
+
+
+                });
+                if (!metaResp.ok) throw new Error(`Metadata save failed: ${metaResp.status}`);
+
+                showMessage(uploadMessageDiv, `✅ Model "${modelName}" uploaded successfully!`, false);
+                modelFileInput.value = '';
+                modelNameInput.value = '';
+                fetchModels();
+            } catch (err) {
+                console.error(err);
+                let errorMsg = `❌ Upload failed: ${err.message}`;
+                if (err.message.includes('CORS') || err.message.includes('Failed to fetch')) {
+                    errorMsg += ` — Try enabling the "Use CORS proxy" checkbox.`;
+                }
+                showMessage(uploadMessageDiv, errorMsg, true);
+            } finally {
+                uploadBtn.disabled = false;
+            }
+        }
+
+        async function runPrediction() {
+            const userid = userIdInput.value.trim();
+            const modelid = runModelSelect.value;
+            const inputStr = inputJsonTextarea.value.trim();
+
+            if (!userid) { showMessage(predictionResultDiv, '❌ Please enter User ID', true); predictionResultDiv.style.display = 'block'; return; }
+            if (!modelid) { showMessage(predictionResultDiv, '❌ Please select a model', true); predictionResultDiv.style.display = 'block'; return; }
+            if (!inputStr) { showMessage(predictionResultDiv, '❌ Please provide input JSON', true); predictionResultDiv.style.display = 'block'; return; }
+
+            let parsedInput;
+            try {
+                parsedInput = JSON.parse(inputStr);
+            } catch (e) {
+                showMessage(predictionResultDiv, '❌ Invalid JSON. Please check syntax.', true);
+                predictionResultDiv.style.display = 'block';
+                return;
+            }
+
+            predictBtn.disabled = true;
+            predictionResultDiv.style.display = 'block';
+            predictionResultDiv.innerHTML = '<div class="spinner"></div> Running inference (cold start may take a few seconds)...';
+
+            try {
+                const url = getApiUrl(`/run-model/${encodeURIComponent(userid)}/${encodeURIComponent(modelid)}`);
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ input: parsedInput })
+                });
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`Inference failed (${response.status}): ${errText}`);
+                }
+                const result = await response.json();
+                
+                // Construct absolute URL for the API endpoint snippet
+                const absoluteApiEndpoint = `${window.location.origin}/proxy/run-model/${encodeURIComponent(userid)}/${encodeURIComponent(modelid)}`;
+
+                predictionResultDiv.innerHTML = `<strong>✅ Prediction Result:</strong><br>${JSON.stringify(result, null, 2)}
+                <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 1.5rem 0 1rem 0;">
+                <div style="font-size: 0.8rem; color: #9ca3af; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 0.5rem;">
+                    <strong style="color: #e2e8f0;">⚡ Use this Model via API:</strong><br><br>
+                    Endpoint (POST):<br>
+                    <code style="background: rgba(0,0,0,0.6); padding: 0.3rem 0.5rem; border-radius: 4px; color: #a5f3fc; word-break: break-all; margin-top: 0.3rem; display: inline-block; user-select: all;">${absoluteApiEndpoint}</code>
+                    <br><br>
+                    Example Body (JSON):<br>
+                    <code style="background: rgba(0,0,0,0.6); padding: 0.3rem 0.5rem; border-radius: 4px; display: block; margin-top: 0.3rem; user-select: all;">${JSON.stringify({ input: parsedInput })}</code>
+                </div>`;
+            } catch (err) {
+                let errorMsg = `<strong>❌ Error:</strong> ${err.message}`;
+                if (err.message.includes('CORS') || err.message.includes('Failed to fetch')) {
+                    errorMsg += `<br><span style="color:#fbbf24;">💡 Tip: Try enabling the "Use CORS proxy" checkbox.</span>`;
+                }
+                predictionResultDiv.innerHTML = errorMsg;
+                console.error(err);
+            } finally {
+                predictBtn.disabled = false;
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function (m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        function escapeAttr(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        refreshBtn.addEventListener('click', fetchModels);
+        uploadBtn.addEventListener('click', uploadModel);
+        predictBtn.addEventListener('click', runPrediction);
+
+        fetchModels();
+    </script>
+</body>
+
+</html>

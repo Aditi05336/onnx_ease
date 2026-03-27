@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/proxy/:rest*",
+      "destination": "https://quqjmkt1sc.execute-api.us-east-1.amazonaws.com/dev/:rest*"
+    }
+  ]
+}
