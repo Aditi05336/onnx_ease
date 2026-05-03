@@ -11,7 +11,6 @@ Built for seamless integration with modern frontends (e.g., Vercel), this system
 flowchart TD
 
     User[User / Client] --> Frontend[Vercel Frontend]
-
     Frontend --> APIGW[Amazon API Gateway]
 
     APIGW --> L1[Lambda: Get Upload URL]
@@ -24,13 +23,13 @@ flowchart TD
     CW[CloudWatch Logs]
 
     %% Upload Flow
-    L1 -->|Generate Pre-signed URL| S3
-    Frontend -->|Upload ONNX via URL| S3
+    L1 -->|Generate Presigned URL| S3
+    Frontend -->|Upload ONNX file| S3
     L2 -->|Store metadata| S3
 
     %% Run Flow
     L3 -->|Fetch model| S3
-    L3 -->|Run inference (ONNX Runtime)| L3
+    L3 -->|Run inference| CW
 
     %% List & Delete
     L4 -->|Fetch models| S3
@@ -61,14 +60,13 @@ flowchart TD
 ## 🔗 API Endpoints
 
 ### 📤 Get Upload URL
-
 **GET /get-upload-url**
 
 ```
 arn:aws:execute-api:us-east-1:761288222364:quqjmkt1sc/*/GET/get-upload-url
 ```
 
-Generates a pre-signed URL for uploading your ONNX model.
+Generates a pre-signed URL to upload your ONNX model.
 
 **Response**
 ```json
@@ -81,7 +79,6 @@ Generates a pre-signed URL for uploading your ONNX model.
 ---
 
 ### 📥 Upload Model
-
 **POST /upload-model**
 
 ```
@@ -102,19 +99,17 @@ Registers the uploaded model.
 ---
 
 ### 📄 Get User Models
-
 **GET /models/{userid}**
 
 ```
 arn:aws:execute-api:us-east-1:761288222364:quqjmkt1sc/*/GET/models/{userid}
 ```
 
-Returns all models for a user.
+Returns all models uploaded by a user.
 
 ---
 
 ### ▶️ Run Model
-
 **POST /run-model/{userid}/{modelid}**
 
 ```
@@ -140,23 +135,22 @@ Runs inference using the selected ONNX model.
 ---
 
 ### 🗑️ Delete Model
-
 **DELETE /models/{userid}/{modelid}**
 
 ```
 arn:aws:execute-api:us-east-1:761288222364:quqjmkt1sc/*/DELETE/models/{userid}/{modelid}
 ```
 
-Deletes the model from storage and system.
+Deletes the model from storage.
 
 ---
 
 ## 🔄 Workflow
 
 1. Call `/get-upload-url`  
-2. Upload `.onnx` file to S3 using pre-signed URL  
-3. Register model using `/upload-model`  
-4. Fetch models using `/models/{userid}`  
+2. Upload `.onnx` file using the pre-signed URL  
+3. Register model via `/upload-model`  
+4. Fetch models via `/models/{userid}`  
 5. Run model via `/run-model/{userid}/{modelid}`  
 6. Delete model when needed  
 
@@ -164,50 +158,48 @@ Deletes the model from storage and system.
 
 ## ⚙️ Tech Stack
 
-- AWS Lambda (Serverless compute)  
-- Amazon S3 (Storage)  
-- API Gateway (API management)  
-- CloudWatch (Logging & monitoring)  
-- Vercel (Frontend hosting)  
-- ONNX Runtime (Model inference)  
+- AWS Lambda  
+- Amazon S3  
+- API Gateway  
+- CloudWatch  
+- Vercel  
+- ONNX Runtime  
 
 ---
 
 ## 📊 Monitoring
 
-All system activity is logged via CloudWatch:
+All logs and metrics are available in CloudWatch:
 - API request logs  
 - Lambda execution logs  
-- Error tracking and debugging  
+- Error tracking  
 
 ---
 
 ## 🔐 Security
 
-- Pre-signed URLs for secure file uploads  
+- Pre-signed URLs for secure uploads  
 - IAM roles for restricted access  
-- API Gateway for controlled endpoint exposure  
+- API Gateway for endpoint control  
 
 ---
 
 ## 🚧 Future Improvements
 
-- 🔐 Authentication (JWT / AWS Cognito)  
-- 📦 Model versioning  
-- ⚡ Batch inference support  
-- 🧠 GPU-based execution  
-- 📊 Usage analytics dashboard  
+- Authentication (JWT / AWS Cognito)  
+- Model versioning  
+- Batch inference  
+- GPU support  
+- Usage analytics dashboard  
 
 ---
 
 ## 🧑‍💻 Author
 
-Built as a **serverless AI model deployment platform** using AWS.  
-Designed to simplify ML model serving and make deployment accessible without infrastructure management.
+Built as a serverless AI model deployment platform using AWS.
 
 ---
 
-## ⭐ Contribute / Feedback
+## ⭐ Support
 
-Feel free to fork, improve, or suggest features!  
-If you found this useful, consider giving it a ⭐
+If you found this useful, consider giving it a ⭐ on GitHub!
