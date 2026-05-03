@@ -1,7 +1,7 @@
 # 🚀 AI Model Hosting & Execution Platform (AWS Serverless)
 
 A fully serverless platform to **upload, store, manage, and run ONNX machine learning models** using AWS.  
-This system allows you to deploy ML models as APIs without managing infrastructure.
+It allows users to deploy ML models as APIs without managing infrastructure.
 
 ---
 
@@ -18,12 +18,12 @@ flowchart LR
     end
 
     %% API Layer
-    subgraph API Layer
+    subgraph API
         APIGW[API Gateway]
     end
 
     %% Compute Layer
-    subgraph Compute (AWS Lambda)
+    subgraph Compute
         L1[Get Upload URL]
         L2[Upload Model]
         L3[Run Model]
@@ -37,7 +37,7 @@ flowchart LR
     end
 
     %% Monitoring
-    subgraph Monitoring
+    subgraph Logs
         CW[CloudWatch]
     end
 
@@ -50,9 +50,9 @@ flowchart LR
     APIGW --> L4
     APIGW --> L5
 
-    %% Core Flows
+    %% Core Flow
     L1 --> S3
-    FE -->|Upload file| S3
+    FE -->|Upload ONNX| S3
     L2 --> S3
 
     L3 --> S3
@@ -76,56 +76,61 @@ flowchart LR
 - Run models via API (serverless inference)  
 - Fetch all user models  
 - Delete models anytime  
-- Logging with CloudWatch  
+- Logging via CloudWatch  
 - Fully serverless and scalable  
 
 ---
 
-## 🔗 API Endpoints
+## 🔗 API Endpoints (Full URLs)
 
 ### 📤 Get Upload URL
-`GET /get-upload-url`
-
-Generates a pre-signed URL for uploading your ONNX model.
+**GET**
+```
+https://quqjmkt1sc.execute-api.us-east-1.amazonaws.com/prod/get-upload-url
+```
 
 ---
 
 ### 📥 Upload Model
-`POST /upload-model`
-
-Registers uploaded model metadata.
+**POST**
+```
+https://quqjmkt1sc.execute-api.us-east-1.amazonaws.com/prod/upload-model
+```
 
 ---
 
-### 📄 Get Models
-`GET /models/{userid}`
-
-Returns all models for a user.
+### 📄 Get User Models
+**GET**
+```
+https://quqjmkt1sc.execute-api.us-east-1.amazonaws.com/prod/models/{userid}
+```
 
 ---
 
 ### ▶️ Run Model
-`POST /run-model/{userid}/{modelid}`
-
-Runs inference using ONNX Runtime.
+**POST**
+```
+https://quqjmkt1sc.execute-api.us-east-1.amazonaws.com/prod/run-model/{userid}/{modelid}
+```
 
 ---
 
 ### 🗑️ Delete Model
-`DELETE /models/{userid}/{modelid}`
-
-Deletes model from storage.
+**DELETE**
+```
+https://quqjmkt1sc.execute-api.us-east-1.amazonaws.com/prod/models/{userid}/{modelid}
+```
 
 ---
 
 ## 🔄 Workflow
 
-1. Request upload URL  
-2. Upload `.onnx` file to S3  
-3. Register model  
-4. Fetch available models  
-5. Run model via API  
-6. Delete model if needed  
+1. Call `/get-upload-url`  
+2. Upload `.onnx` file to S3 using the returned URL  
+3. Register model via `/upload-model`  
+4. Fetch models via `/models/{userid}`  
+5. Run model via `/run-model/{userid}/{modelid}`  
+6. Delete model when needed  
 
 ---
 
@@ -143,8 +148,8 @@ Deletes model from storage.
 ## 🔐 Security
 
 - Pre-signed URLs for secure uploads  
-- IAM roles for controlled permissions  
-- API Gateway for request validation  
+- IAM roles for controlled access  
+- API Gateway for endpoint protection  
 
 ---
 
@@ -157,13 +162,19 @@ Deletes model from storage.
 
 ## 🚧 Future Improvements
 
-- Authentication (JWT / Cognito)  
+- Authentication (JWT / AWS Cognito)  
 - Model versioning  
 - Batch inference  
-- GPU-based execution  
+- GPU support  
 
 ---
 
 ## 🧑‍💻 Author
 
-Serverless ML deployment platform built using AWS.
+Serverless AI model deployment platform built using AWS.
+
+---
+
+## ⭐ Support
+
+If you found this useful, consider giving it a ⭐ on GitHub!
