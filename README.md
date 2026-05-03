@@ -1,41 +1,65 @@
 # 🚀 AI Model Hosting & Execution Platform (AWS Serverless)
 
-A fully serverless platform to **upload, store, manage, and run ONNX machine learning models** using AWS services.  
-Built for seamless integration with modern frontends (e.g., Vercel), this system allows users to deploy ML models as APIs without managing infrastructure.
+A fully serverless platform to **upload, store, manage, and run ONNX machine learning models** using AWS.  
+This system allows you to deploy ML models as APIs without managing infrastructure.
 
 ---
 
-## 🧠 System Architecture & Flow
+## 🧠 Architecture Overview
 
 ```mermaid
-flowchart TD
+flowchart LR
 
-    User[User / Client] --> Frontend[Vercel Frontend]
-    Frontend --> APIGW[Amazon API Gateway]
+    %% Client Layer
+    subgraph Client
+        U[User]
+        FE[Vercel Frontend]
+        U --> FE
+    end
 
-    APIGW --> L1[Lambda: Get Upload URL]
-    APIGW --> L2[Lambda: Upload Model Metadata]
-    APIGW --> L3[Lambda: Run Model]
-    APIGW --> L4[Lambda: Get Models]
-    APIGW --> L5[Lambda: Delete Model]
+    %% API Layer
+    subgraph API Layer
+        APIGW[API Gateway]
+    end
 
-    S3[(Amazon S3 Bucket)]
-    CW[CloudWatch Logs]
+    %% Compute Layer
+    subgraph Compute (AWS Lambda)
+        L1[Get Upload URL]
+        L2[Upload Model]
+        L3[Run Model]
+        L4[Get Models]
+        L5[Delete Model]
+    end
 
-    %% Upload Flow
-    L1 -->|Generate Presigned URL| S3
-    Frontend -->|Upload ONNX file| S3
-    L2 -->|Store metadata| S3
-
-    %% Run Flow
-    L3 -->|Fetch model| S3
-    L3 -->|Run inference| CW
-
-    %% List & Delete
-    L4 -->|Fetch models| S3
-    L5 -->|Delete model| S3
+    %% Storage
+    subgraph Storage
+        S3[(S3 Bucket)]
+    end
 
     %% Monitoring
+    subgraph Monitoring
+        CW[CloudWatch]
+    end
+
+    %% Connections
+    FE --> APIGW
+
+    APIGW --> L1
+    APIGW --> L2
+    APIGW --> L3
+    APIGW --> L4
+    APIGW --> L5
+
+    %% Core Flows
+    L1 --> S3
+    FE -->|Upload file| S3
+    L2 --> S3
+
+    L3 --> S3
+    L4 --> S3
+    L5 --> S3
+
+    %% Logging
     L1 --> CW
     L2 --> CW
     L3 --> CW
@@ -47,112 +71,61 @@ flowchart TD
 
 ## 📦 Features
 
-- 📤 Upload ONNX models using secure pre-signed URLs  
-- ☁️ Store models in Amazon S3  
-- ▶️ Run models via API (serverless inference)  
-- 📄 Fetch all user models  
-- 🗑️ Delete models anytime  
-- 📊 Logging & monitoring with CloudWatch  
-- ⚡ Fully serverless and scalable  
+- Upload ONNX models using pre-signed URLs  
+- Store models securely in S3  
+- Run models via API (serverless inference)  
+- Fetch all user models  
+- Delete models anytime  
+- Logging with CloudWatch  
+- Fully serverless and scalable  
 
 ---
 
 ## 🔗 API Endpoints
 
 ### 📤 Get Upload URL
-**GET /get-upload-url**
+`GET /get-upload-url`
 
-```
-arn:aws:execute-api:us-east-1:761288222364:quqjmkt1sc/*/GET/get-upload-url
-```
-
-Generates a pre-signed URL to upload your ONNX model.
-
-**Response**
-```json
-{
-  "uploadUrl": "https://s3.amazonaws.com/...",
-  "fileKey": "models/user123/model.onnx"
-}
-```
+Generates a pre-signed URL for uploading your ONNX model.
 
 ---
 
 ### 📥 Upload Model
-**POST /upload-model**
+`POST /upload-model`
 
-```
-arn:aws:execute-api:us-east-1:761288222364:quqjmkt1sc/*/POST/upload-model
-```
-
-Registers the uploaded model.
-
-**Request**
-```json
-{
-  "userId": "user123",
-  "modelName": "my-model",
-  "fileKey": "models/user123/model.onnx"
-}
-```
+Registers uploaded model metadata.
 
 ---
 
-### 📄 Get User Models
-**GET /models/{userid}**
+### 📄 Get Models
+`GET /models/{userid}`
 
-```
-arn:aws:execute-api:us-east-1:761288222364:quqjmkt1sc/*/GET/models/{userid}
-```
-
-Returns all models uploaded by a user.
+Returns all models for a user.
 
 ---
 
 ### ▶️ Run Model
-**POST /run-model/{userid}/{modelid}**
+`POST /run-model/{userid}/{modelid}`
 
-```
-arn:aws:execute-api:us-east-1:761288222364:quqjmkt1sc/*/POST/run-model/{userid}/{modelid}
-```
-
-Runs inference using the selected ONNX model.
-
-**Request**
-```json
-{
-  "input": [1.0, 2.0, 3.0]
-}
-```
-
-**Response**
-```json
-{
-  "output": [0.87]
-}
-```
+Runs inference using ONNX Runtime.
 
 ---
 
 ### 🗑️ Delete Model
-**DELETE /models/{userid}/{modelid}**
+`DELETE /models/{userid}/{modelid}`
 
-```
-arn:aws:execute-api:us-east-1:761288222364:quqjmkt1sc/*/DELETE/models/{userid}/{modelid}
-```
-
-Deletes the model from storage.
+Deletes model from storage.
 
 ---
 
 ## 🔄 Workflow
 
-1. Call `/get-upload-url`  
-2. Upload `.onnx` file using the pre-signed URL  
-3. Register model via `/upload-model`  
-4. Fetch models via `/models/{userid}`  
-5. Run model via `/run-model/{userid}/{modelid}`  
-6. Delete model when needed  
+1. Request upload URL  
+2. Upload `.onnx` file to S3  
+3. Register model  
+4. Fetch available models  
+5. Run model via API  
+6. Delete model if needed  
 
 ---
 
@@ -167,39 +140,30 @@ Deletes the model from storage.
 
 ---
 
-## 📊 Monitoring
-
-All logs and metrics are available in CloudWatch:
-- API request logs  
-- Lambda execution logs  
-- Error tracking  
-
----
-
 ## 🔐 Security
 
 - Pre-signed URLs for secure uploads  
-- IAM roles for restricted access  
-- API Gateway for endpoint control  
+- IAM roles for controlled permissions  
+- API Gateway for request validation  
+
+---
+
+## 📊 Monitoring
+
+- CloudWatch logs for all Lambda executions  
+- Error tracking and debugging  
 
 ---
 
 ## 🚧 Future Improvements
 
-- Authentication (JWT / AWS Cognito)  
+- Authentication (JWT / Cognito)  
 - Model versioning  
 - Batch inference  
-- GPU support  
-- Usage analytics dashboard  
+- GPU-based execution  
 
 ---
 
 ## 🧑‍💻 Author
 
-Built as a serverless AI model deployment platform using AWS.
-
----
-
-## ⭐ Support
-
-If you found this useful, consider giving it a ⭐ on GitHub!
+Serverless ML deployment platform built using AWS.
